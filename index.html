@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K-12 Breach Check</title>
+<meta name="description" content="Look up reported cybersecurity incidents affecting a US K-12 school or district.">
+<style>
+  :root{
+    --bg:#0f141b; --panel:#17202b; --panel2:#1d2836; --text:#e8edf3; --muted:#9aa7b8;
+    --accent:#4da3ff; --accent-dim:#2b6cb0; --border:#2a3547;
+    --good:#3fb27f; --warn:#e0a63c; --bad:#e06c5c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55}
+  .wrap{max-width:960px;margin:0 auto;padding:0 20px}
+  header{padding:44px 0 18px;border-bottom:1px solid var(--border)}
+  header h1{margin:0 0 6px;font-size:2rem;letter-spacing:-0.5px}
+  header p{margin:4px 0;color:var(--muted);max-width:640px}
+  .fresh{margin-top:12px;font-size:.85rem;color:var(--muted)}
+  .fresh b{color:var(--text)}
+  .searchbox{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:22px;margin:26px 0}
+  .searchbox label{display:block;font-size:.85rem;color:var(--muted);margin:0 0 6px}
+  #q{width:100%;font-size:1.1rem;padding:12px 14px;border-radius:8px;border:1px solid var(--border);
+    background:var(--panel2);color:var(--text)}
+  #q:focus{outline:2px solid var(--accent-dim);border-color:var(--accent)}
+  .filters{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
+  .filters>div{flex:1;min-width:150px}
+  select,input[type=number]{width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);
+    background:var(--panel2);color:var(--text);font-size:.95rem}
+  .hint{font-size:.85rem;color:var(--muted);margin-top:10px}
+  #results{margin:10px 0 40px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:18px 20px;margin:14px 0}
+  .card h2{margin:0 0 2px;font-size:1.15rem}
+  .card .sub{color:var(--muted);font-size:.9rem;margin-bottom:10px}
+  .inc{border-top:1px solid var(--border);padding:12px 0}
+  .inc:first-of-type{margin-top:6px}
+  .inc .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px}
+  .badge{display:inline-block;font-size:.75rem;font-weight:600;padding:2px 9px;border-radius:20px;
+    text-transform:uppercase;letter-spacing:.4px}
+  .b-corr{background:rgba(63,178,127,.16);color:var(--good);border:1px solid rgba(63,178,127,.4)}
+  .b-rep{background:rgba(224,166,60,.14);color:var(--warn);border:1px solid rgba(224,166,60,.4)}
+  .b-unc{background:rgba(224,108,92,.14);color:var(--bad);border:1px solid rgba(224,108,92,.4)}
+  .tag{display:inline-block;font-size:.78rem;background:var(--panel2);border:1px solid var(--border);
+    border-radius:6px;padding:1px 8px;color:var(--muted);margin:2px 4px 2px 0}
+  .src{font-size:.85rem;margin-top:6px}
+  .src a{color:var(--accent);text-decoration:none;margin-right:12px}
+  .src a:hover{text-decoration:underline}
+  .empty{background:var(--panel);border:1px dashed var(--border);border-radius:12px;
+    padding:26px;text-align:center;color:var(--muted)}
+  .empty b{color:var(--good)}
+  .count{color:var(--muted);font-size:.9rem;margin:18px 0 4px}
+  section.about{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:22px;margin:30px 0}
+  section.about h2{margin-top:0;font-size:1.25rem}
+  section.about h3{font-size:1rem;margin:18px 0 6px}
+  footer{border-top:1px solid var(--border);padding:22px 0 40px;color:var(--muted);font-size:.85rem}
+  footer a{color:var(--accent);text-decoration:none}
+  footer a:hover{text-decoration:underline}
+  .loading{color:var(--muted);padding:30px 0;text-align:center}
+  .vendor-note{font-size:.85rem;color:var(--muted);margin:-6px 0 10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>K-12 Breach Check</h1>
+  <p>Search reported cybersecurity incidents affecting US K-12 schools and districts.
+     Built from public records by the NYU MLab K-12 cybersecurity research project.</p>
+  <div class="fresh" id="fresh">Loading data&hellip;</div>
+</header>
+
+<div class="searchbox">
+  <label for="q">School or district name</label>
+  <input id="q" type="text" placeholder="e.g. Chicago Public Schools" autocomplete="off">
+  <div class="filters">
+    <div>
+      <label for="state">State</label>
+      <select id="state"><option value="">All states</option></select>
+    </div>
+    <div>
+      <label for="ymin">From year</label>
+      <input id="ymin" type="number" min="1995" max="2026" placeholder="1995">
+    </div>
+    <div>
+      <label for="ymax">To year</label>
+      <input id="ymax" type="number" min="1995" max="2026" placeholder="2026">
+    </div>
+  </div>
+  <div class="hint">Tip: you can type part of a name. Results update as you type.</div>
+</div>
+
+<div class="count" id="count"></div>
+<div id="results"><div class="loading">Loading incident data&hellip;</div></div>
+
+<section class="about" id="vendors">
+  <h2>Major vendor incidents</h2>
+  <p class="vendor-note">Some of the largest K-12 incidents happened at education technology vendors,
+     not at individual districts. If your district used one of these products, its data may have
+     been exposed through the vendor.</p>
+  <div id="vendor-list"></div>
+</section>
+
+<section class="about">
+  <h2>What this is, and what it is not</h2>
+  <h3>What this is</h3>
+  <p>A public index of <b>reported cybersecurity incidents at the school or district level</b>,
+     compiled from public records: state attorney general filings, news reporting, vendor
+     disclosures, and research datasets. If your school or district appears here, at least one
+     incident tied to it has been publicly reported.</p>
+  <h3>What it is not</h3>
+  <p>We track incidents <b>per school, not per person</b>. We do not hold email addresses,
+     student lists, or any individual records from these breaches, so this site <b>cannot tell
+     you whether your personal information was exposed</b>. For that, contact your district
+     directly or watch for the notification letters districts are required to send after a breach.</p>
+  <h3>How to read a result</h3>
+  <p>Each incident card shows the date, the type of incident, how many records were reported
+     affected (when a number was published), a confidence badge, the kinds of data reported
+     exposed, and links to the public sources. <b>Corroborated</b> means multiple independent
+     sources reported it. <b>Reported</b> means at least one credible source. <b>Unconfirmed</b>
+     means the report could not be independently verified; treat it with caution.</p>
+  <h3>Coverage limits</h3>
+  <p>This index reflects what has been publicly reported, and reporting is uneven. Many incidents
+     are never disclosed, so an empty result means <b>no publicly reported incidents found</b>,
+     not that nothing ever happened.</p>
+</section>
+
+<footer>
+  <p>Data: <span id="foot-fresh"></span></p>
+  <p>Maintained by the <a href="https://github.com/nyu-mlab/k12-cybersecurity-research">NYU MLab
+     K-12 cybersecurity research project</a>. Source for this site:
+     <a href="https://github.com/nyu-mlab/k12-breach-check">github.com/nyu-mlab/k12-breach-check</a>.</p>
+</footer>
+</div>
+
+<script>
+let DATA = null;
+
+function norm(s){ return (s||"").toLowerCase().trim(); }
+
+// Simple fuzzy match: every query token must appear as a substring of the name,
+// in any order. Ranks exact-substring matches above token-scattered ones.
+function matchScore(name, q){
+  name = norm(name); q = norm(q);
+  if(!q) return 1;
+  if(name.indexOf(q) !== -1) return 100;
+  const tokens = q.split(/\s+/).filter(Boolean);
+  let pos = 0, ok = true;
+  for(const t of tokens){
+    const i = name.indexOf(t, pos);
+    if(i === -1){ ok = false; break; }
+    pos = i + t.length;
+  }
+  return ok ? 50 : 0;
+}
+
+function esc(s){
+  return String(s==null?"":s).replace(/[&<>"']/g, c =>
+    ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function confBadge(c){
+  const map = {"Corroborated":"b-corr","Reported":"b-rep","Unconfirmed":"b-unc"};
+  return '<span class="badge '+(map[c]||"b-unc")+'">'+esc(c||"Unknown")+'</span>';
+}
+
+function fmtRecords(n){
+  if(n==null) return "not published";
+  return Number(n).toLocaleString("en-US");
+}
+
+function fmtDate(d){
+  if(!d) return "date unknown";
+  const parts = String(d).split("-");
+  const months = { "01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun",
+                   "07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec" };
+  if(parts.length >= 3) return months[parts[1]]+" "+parseInt(parts[2],10)+", "+parts[0];
+  if(parts.length === 2) return (months[parts[1]]||parts[1])+" "+parts[0];
+  return d;
+}
+
+function typeLabel(t){
+  const map = {
+    ransomware:"Ransomware", data_breach:"Data breach", cyber_incident:"Cyber incident",
+    cyberattack:"Cyberattack", phishing:"Phishing", unauthorized_access:"Unauthorized access",
+    ddos:"DDoS", malware:"Malware", business_email_compromise:"Business email compromise"
+  };
+  return map[t] || (t ? String(t).replace(/_/g," ") : "Incident");
+}
+
+function incidentHTML(i){
+  let h = '<div class="inc"><div class="row"><b>'+esc(fmtDate(i.date))+'</b>';
+  h += '<span>'+esc(typeLabel(i.type))+'</span>'+confBadge(i.confidence)+'</div>';
+  h += '<div>Records affected: <b>'+esc(fmtRecords(i.records))+'</b></div>';
+  if(i.data_types && i.data_types.length){
+    h += '<div style="margin-top:6px">Data reported exposed:<br>';
+    for(const t of i.data_types) h += '<span class="tag">'+esc(t)+'</span>';
+    h += '</div>';
+  }
+  if(i.sources && i.sources.length){
+    h += '<div class="src">Sources: ';
+    i.sources.forEach((u,idx)=>{ h += '<a href="'+esc(u)+'" target="_blank" rel="noopener">source '+(idx+1)+'</a>'; });
+    h += '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function render(){
+  const q = document.getElementById("q").value;
+  const st = document.getElementById("state").value;
+  const ymin = parseInt(document.getElementById("ymin").value,10) || 0;
+  const ymax = parseInt(document.getElementById("ymax").value,10) || 9999;
+  const box = document.getElementById("results");
+  const count = document.getElementById("count");
+
+  if(!q.trim()){
+    box.innerHTML = '<div class="empty">Type a school or district name above to check it.</div>';
+    count.textContent = "";
+    return;
+  }
+
+  const hits = [];
+  for(const d of DATA.districts){
+    if(st && d.state !== st) continue;
+    const score = matchScore(d.name, q);
+    if(!score) continue;
+    const incs = d.incidents.filter(i => (i.year||0) >= ymin && (i.year||0) <= ymax);
+    if(!incs.length) continue;
+    hits.push({d, score, incs});
+  }
+  hits.sort((a,b)=> b.score - a.score || b.incs.length - a.incs.length);
+  const shown = hits.slice(0, 50);
+
+  if(!shown.length){
+    box.innerHTML = '<div class="empty"><b>No breaches found.</b><br>'+
+      'No publicly reported incidents match that search. That means nothing was found in '+
+      'public records, not that nothing ever happened.</div>';
+    count.textContent = "0 matches";
+    return;
+  }
+
+  count.textContent = shown.length + (hits.length > 50 ? " of "+hits.length : "") +
+    " match" + (shown.length===1?"":"es");
+  let h = "";
+  for(const {d, incs} of shown){
+    h += '<div class="card"><h2>'+esc(d.name)+'</h2>';
+    h += '<div class="sub">'+esc(d.state)+
+      (d.nces_id ? ' &middot; NCES district ID '+esc(d.nces_id) : '')+
+      ' &middot; '+incs.length+' incident'+(incs.length===1?"":"s")+'</div>';
+    for(const i of incs) h += incidentHTML(i);
+    h += '</div>';
+  }
+  box.innerHTML = h;
+}
+
+function renderVendors(){
+  const box = document.getElementById("vendor-list");
+  let h = "";
+  for(const v of DATA.vendor_incidents){
+    h += '<div class="card"><h2>'+esc(v.name)+'</h2>';
+    h += '<div class="sub">'+esc(fmtDate(v.date))+' &middot; vendor-level incident</div>';
+    h += incidentHTML(v);
+    h += '</div>';
+  }
+  box.innerHTML = h;
+}
+
+fetch("index.json").then(r => r.json()).then(idx => {
+  DATA = idx;
+  const states = [...new Set(idx.districts.map(d=>d.state))].sort();
+  const sel = document.getElementById("state");
+  for(const s of states){
+    const o = document.createElement("option"); o.value = s; o.textContent = s; sel.appendChild(o);
+  }
+  const meta = idx.meta;
+  const fresh = "Breach database "+esc(meta.db_version)+", index generated "+esc(meta.generated_utc)+
+    ". Covers "+meta.district_count.toLocaleString("en-US")+" districts and "+
+    meta.incident_count.toLocaleString("en-US")+" reported incidents.";
+  document.getElementById("fresh").innerHTML = fresh;
+  document.getElementById("foot-fresh").textContent =
+    "Breach database "+meta.db_version+", index generated "+meta.generated_utc+".";
+  renderVendors();
+  render();
+  for(const id of ["q","state","ymin","ymax"])
+    document.getElementById(id).addEventListener("input", render);
+}).catch(()=>{
+  document.getElementById("results").innerHTML =
+    '<div class="empty">Could not load the incident data. Please try again later.</div>';
+});
+</script>
+</body>
+</html>
